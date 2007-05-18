@@ -11,11 +11,12 @@
 
 package org.eclipse.birt.chart.script.internal.component;
 
+import org.eclipse.birt.chart.model.component.Label;
 import org.eclipse.birt.chart.model.component.MarkerLine;
-import org.eclipse.birt.chart.script.api.ChartComponentFactory;
 import org.eclipse.birt.chart.script.api.attribute.ILabel;
 import org.eclipse.birt.chart.script.api.component.IMarkerLine;
 import org.eclipse.birt.chart.script.api.data.IDataElement;
+import org.eclipse.birt.chart.script.internal.ChartComponentUtil;
 
 /**
  * 
@@ -33,17 +34,23 @@ public class MarkerLineImpl implements IMarkerLine
 
 	public IDataElement getValue( )
 	{
-		return ChartComponentFactory.convertDataElement( line.getValue( ) );
+		return ChartComponentUtil.convertDataElement( line.getValue( ) );
 	}
 
 	public void setValue( IDataElement value )
 	{
-		line.setValue( ChartComponentFactory.convertIDataElement( value ) );
+		line.setValue( ChartComponentUtil.convertIDataElement( value ) );
 	}
 
 	public ILabel getTitle( )
 	{
-		return ChartComponentFactory.convertLabel( line.getLabel( ) );
+		Label title = line.getLabel( );
+		if ( title == null )
+		{
+			title = ChartComponentUtil.createEMFLabel( );
+			line.setLabel( title );
+		}
+		return ChartComponentUtil.convertLabel( title );
 	}
 
 	public boolean isVisible( )
@@ -53,7 +60,7 @@ public class MarkerLineImpl implements IMarkerLine
 
 	public void setTitle( ILabel title )
 	{
-		line.setLabel( ChartComponentFactory.convertILabel( title ) );
+		line.setLabel( ChartComponentUtil.convertILabel( title ) );
 	}
 
 	public void setVisible( boolean visible )

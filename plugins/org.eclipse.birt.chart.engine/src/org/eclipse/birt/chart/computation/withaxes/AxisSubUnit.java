@@ -27,6 +27,12 @@ public final class AxisSubUnit
 
 	private double dLastValue = 0;
 
+	/** The field stores max position of series in axes. */
+	private double dLastMaxPosition = Double.NaN;
+	
+	/** The field stores min position of series in axes. */
+	private double dLastMinPosition = Double.NaN;
+	
 	AxisSubUnit( )
 	{
 	}
@@ -130,5 +136,25 @@ public final class AxisSubUnit
 			return 0;
 		}
 		return ( dValue * 100d ) / ( dPositiveTotal - dNegativeTotal );
+	}
+
+	public final double getLastMaxPosition( )
+	{
+		return dLastMaxPosition;
+	}
+
+	public final void setLastMaxPosition( double dLastMaxPosition )
+	{
+		this.dLastMaxPosition = dLastMaxPosition;
+	}
+
+	public final double getLastMinPosition( )
+	{
+		return dLastMinPosition;
+	}
+
+	public final void setLastMinPosition( double dLastMinPosition )
+	{
+		this.dLastMinPosition = dLastMinPosition;
 	}
 }

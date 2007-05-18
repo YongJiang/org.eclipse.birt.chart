@@ -11,10 +11,11 @@
 
 package org.eclipse.birt.chart.script.internal.component;
 
+import org.eclipse.birt.chart.model.component.Label;
 import org.eclipse.birt.chart.model.layout.Legend;
-import org.eclipse.birt.chart.script.api.ChartComponentFactory;
 import org.eclipse.birt.chart.script.api.attribute.ILabel;
 import org.eclipse.birt.chart.script.api.component.ILegend;
+import org.eclipse.birt.chart.script.internal.ChartComponentUtil;
 
 /**
  * 
@@ -32,7 +33,13 @@ public class LegendImpl implements ILegend
 
 	public ILabel getTitle( )
 	{
-		return ChartComponentFactory.convertLabel( legend.getTitle( ) );
+		Label title = legend.getTitle( );
+		if ( title == null )
+		{
+			title = ChartComponentUtil.createEMFLabel( );
+			legend.setTitle( title );
+		}
+		return ChartComponentUtil.convertLabel( title );
 	}
 
 	public boolean isVisible( )
@@ -42,7 +49,7 @@ public class LegendImpl implements ILegend
 
 	public void setTitle( ILabel title )
 	{
-		legend.setTitle( ChartComponentFactory.convertILabel( title ) );
+		legend.setTitle( ChartComponentUtil.convertILabel( title ) );
 	}
 
 	public void setVisible( boolean visible )
