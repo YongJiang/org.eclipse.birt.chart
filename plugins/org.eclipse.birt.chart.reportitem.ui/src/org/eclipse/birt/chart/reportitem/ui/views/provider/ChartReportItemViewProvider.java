@@ -11,15 +11,14 @@
 
 package org.eclipse.birt.chart.reportitem.ui.views.provider;
 
-import org.eclipse.birt.report.designer.ui.extensions.IReportItemViewProvider;
+import org.eclipse.birt.report.designer.ui.extensions.ReportItemViewAdapter;
 import org.eclipse.birt.report.model.api.DesignElementHandle;
 import org.eclipse.birt.report.model.api.TableHandle;
 
 /**
- * 
+ * ChartReportItemViewProvider
  */
-
-public class ChartReportItemViewProvider implements IReportItemViewProvider
+public class ChartReportItemViewProvider extends ReportItemViewAdapter
 {
 
 	public DesignElementHandle createView( DesignElementHandle host )
