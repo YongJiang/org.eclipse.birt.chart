@@ -27,11 +27,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.eclipse.birt.chart.aggregate.IAggregateFunction;
+import org.eclipse.birt.chart.api.ChartEngine;
 import org.eclipse.birt.chart.exception.ChartException;
 import org.eclipse.birt.chart.factory.IDataRowExpressionEvaluator;
 import org.eclipse.birt.chart.model.Chart;
 import org.eclipse.birt.chart.model.attribute.DataType;
+import org.eclipse.birt.chart.model.component.Series;
 import org.eclipse.birt.chart.model.data.Query;
+import org.eclipse.birt.chart.model.data.SeriesDefinition;
 import org.eclipse.birt.chart.reportitem.AbstractChartBaseQueryGenerator;
 import org.eclipse.birt.chart.reportitem.BIRTCubeResultSetEvaluator;
 import org.eclipse.birt.chart.reportitem.BaseGroupedQueryResultSetEvaluator;
@@ -47,6 +51,8 @@ import org.eclipse.birt.chart.ui.swt.interfaces.IDataServiceProvider;
 import org.eclipse.birt.chart.ui.swt.wizard.ChartWizard;
 import org.eclipse.birt.chart.ui.swt.wizard.ChartWizardContext;
 import org.eclipse.birt.chart.ui.util.ChartUIConstants;
+import org.eclipse.birt.chart.util.ChartUtil;
+import org.eclipse.birt.chart.util.PluginSettings;
 import org.eclipse.birt.core.data.DataTypeUtil;
 import org.eclipse.birt.core.data.ExpressionUtil;
 import org.eclipse.birt.core.exception.BirtException;
@@ -55,6 +61,7 @@ import org.eclipse.birt.data.engine.api.IBinding;
 import org.eclipse.birt.data.engine.api.IDataQueryDefinition;
 import org.eclipse.birt.data.engine.api.IQueryResults;
 import org.eclipse.birt.data.engine.api.IResultIterator;
+import org.eclipse.birt.data.engine.api.querydefn.BaseQueryDefinition;
 import org.eclipse.birt.data.engine.api.querydefn.Binding;
 import org.eclipse.birt.data.engine.api.querydefn.GroupDefinition;
 import org.eclipse.birt.data.engine.api.querydefn.InputParameterBinding;
@@ -98,6 +105,7 @@ import org.eclipse.birt.report.model.api.olap.LevelHandle;
 import org.eclipse.birt.report.model.api.olap.MeasureHandle;
 import org.eclipse.birt.report.model.metadata.PredefinedStyle;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.emf.common.util.EList;
 
 import com.ibm.icu.text.Collator;
 import com.ibm.icu.text.DateFormat;
@@ -1240,16 +1248,111 @@ public class ReportDataServiceProvider implements IDataServiceProvider
 			throw new UnsupportedOperationException( "Don't be implemented in the class." ); //$NON-NLS-1$
 		}
 
-		/*
-		 * (non-Javadoc)
+		/**
+		 * Add aggregate bindings of value series for grouping case.
 		 * 
-		 * @see org.eclipse.birt.chart.reportitem.AbstractChartBaseQueryGenerator#updateQueryDefinitionForSortOnAggregateExpression(org.eclipse.birt.chart.model.data.Query,
-		 *      java.lang.String, java.lang.String)
+		 * @param query
+		 * @param seriesDefinitions
+		 * @param innerMostGroupDef
+		 * @param valueExprMap
+		 * @param baseSD
+		 * @throws DataException
+		 * @throws DataException
 		 */
-		protected void updateQueryDefinitionForSortOnAggregateExpression(
-				Query query, String bindName, String newExpr )
+		protected void addValueSeriesAggregateBindingForGrouping(
+				BaseQueryDefinition query, EList seriesDefinitions,
+				GroupDefinition innerMostGroupDef, Map valueExprMap,
+				SeriesDefinition baseSD ) throws ChartException
 		{
-			query.setDefinition( bindName );
+			for ( Iterator iter = seriesDefinitions.iterator( ); iter.hasNext( ); )
+			{
+				SeriesDefinition orthSD = (SeriesDefinition) iter.next( );
+				Series series = orthSD.getDesignTimeSeries( );
+				List qlist = ChartEngine.instance( )
+						.getDataSetProcessor( series.getClass( ) )
+						.getDataDefinitionsForGrouping( series );
+
+				for ( Iterator iter_datadef = series.getDataDefinition( )
+						.iterator( ); iter_datadef.hasNext( ); )
+				{
+					Query qry = (Query) iter_datadef.next( );
+					
+					String expr = qry.getDefinition( );
+					if ( expr == null || "".equals( expr ) ) //$NON-NLS-1$
+					{
+						continue;
+					}
+					
+					String aggName = ChartUtil.getAggregateFuncExpr( orthSD, baseSD );
+					if ( aggName == null || "".equals( aggName ) ) //$NON-NLS-1$
+					{
+						continue;
+					}
+					
+					// Get a unique name.
+					String name = ChartUtil.getValueSeriesFullExpression( expr, orthSD, baseSD );
+					if ( fNameSet.contains( name ) )
+					{
+						query.getBindings( ).remove( name );
+					}
+					
+					Binding colBinding = new Binding( name );
+
+					colBinding.setDataType( org.eclipse.birt.core.data.DataType.ANY_TYPE );
+					colBinding.setExpression( new ScriptExpression( expr ) );
+					
+					if ( qlist.contains( qry ) )
+					{
+						if ( innerMostGroupDef != null )
+						{
+							try
+							{
+								colBinding.addAggregateOn( innerMostGroupDef.getName( ) );
+							}
+							catch ( DataException e )
+							{
+								throw new ChartException( ChartReportItemPlugin.ID,
+										ChartException.DATA_BINDING,
+										e );
+							}
+						}
+
+						// Set aggregate parameters.
+						colBinding.setAggrFunction( ChartReportItemUtil.convertToDtEAggFunction( aggName ) );
+
+						IAggregateFunction aFunc = PluginSettings.instance( )
+								.getAggregateFunction( aggName );
+						if ( aFunc.getParametersCount( ) > 0 )
+						{
+							Object[] parameters = ChartUtil.getAggFunParameters( orthSD,
+									baseSD );
+
+							for ( int i = 0; i < parameters.length &&
+									i < aFunc.getParametersCount( ); i++ )
+							{
+								String param = (String) parameters[i];
+								colBinding.addArgument( new ScriptExpression( param ) );
+							}
+						}
+					}
+					String newExpr = getExpressionForEvaluator( name );
+
+					try
+					{
+						query.addBinding( colBinding );
+					}
+					catch ( DataException e )
+					{
+						throw new ChartException( ChartReportItemPlugin.ID,
+								ChartException.DATA_BINDING,
+								e );
+					}
+
+					valueExprMap.put( expr, new String[]{
+							name, newExpr
+					} );
+				}
+			}
 		}
 
 	} // End of class BaseQueryHelper.

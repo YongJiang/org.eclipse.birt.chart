@@ -32,6 +32,7 @@ import org.eclipse.birt.chart.model.data.Query;
 import org.eclipse.birt.chart.model.data.SeriesDefinition;
 import org.eclipse.birt.chart.model.data.SeriesGrouping;
 import org.eclipse.birt.chart.plugin.ChartEnginePlugin;
+import org.eclipse.birt.chart.util.ChartUtil;
 import org.eclipse.emf.common.util.EList;
 
 import com.ibm.icu.util.ULocale;
@@ -49,10 +50,16 @@ public class GroupingLookupHelper
 
 	private List lstAll = new ArrayList( 8 );
 	
+	private List lstTransformedExprs = new ArrayList( 8 );
+	
+	private LinkedHashMap lhmTransformedExprs = new LinkedHashMap( 8 );
+	
 	private String strBaseAggExp = null;
 
 	private int iLookup = 0;
 
+	private int iLookupTransformedExprs = 0;
+	
 	private ULocale locale;
 
 	/** The expression index of sort expression on base series. */
@@ -125,6 +132,16 @@ public class GroupingLookupHelper
 		return lstAll;
 	}
 
+	/**
+	 * Returns transformed expressions for aggregate case.
+	 * @return
+	 * @since 2.3
+	 */
+	public List getExpressionsForAggregate( )
+	{
+		return lstTransformedExprs;
+	}
+	
 	private String generateKey( String dataExp, String aggExp )
 	{
 		if ( aggExp == null || "".equals( aggExp ) ) //$NON-NLS-1$
@@ -195,7 +212,12 @@ public class GroupingLookupHelper
 	
 	private boolean addDataExpOfBaseSeries( String dataExp )
 	{
-		return addDataExp( dataExp, "" ); //$NON-NLS-1$
+		boolean result = addDataExp( dataExp, "" ); //$NON-NLS-1$
+		if ( result )
+		{
+			addDataExpForAggregate( dataExp, "" );
+		}
+		return result;
 	}
 
 	private boolean addDataExp( String dataExp, String aggExp )
@@ -212,7 +234,17 @@ public class GroupingLookupHelper
 		}
 		return false;
 	}
-
+	
+	private void addDataExpForAggregate(String expr, String aggExp )
+	{
+		String key = generateKey( expr, aggExp );
+		if ( !lhmTransformedExprs.containsKey( key ) )
+		{
+			lhmTransformedExprs.put( key, new Integer( iLookupTransformedExprs++ ) );
+			lstTransformedExprs.add( expr );
+		}
+	}
+	
 	private void addLookupForBaseSeries( SeriesDefinition baseSD )
 			throws ChartException
 	{
@@ -273,8 +305,12 @@ public class GroupingLookupHelper
 			}
 
 			String strOrthoAgg = getOrthogonalAggregationExpression( orthoSD );
-			addDataExp( qOrthogonalSeriesDefinition.getDefinition( ),
-					strOrthoAgg );
+			
+			if ( addDataExp( qOrthogonalSeriesDefinition.getDefinition( ),
+					strOrthoAgg ) )
+			{
+				addDataExpForAggregate( qOrthogonalSeriesDefinition.getDefinition( ), strOrthoAgg );	
+			}
 			
 			// Get sort key of Y grouping.
 			String ySortKey = getSortKey( orthoSD );
@@ -304,6 +340,10 @@ public class GroupingLookupHelper
 				if ( addDataExp( qOrthogonalSeries.getDefinition( ),
 						strOrthoAgg ) )
 				{
+					addDataExpForAggregate( ChartUtil.createValueSeriesRowFullExpression( qOrthogonalSeries.getDefinition( ),
+							orthoSD,
+							baseSD ), strOrthoAgg );	
+					
 					bAnyQueries = true;
 					
 					// Set base sort index if it equals the value series
@@ -352,7 +392,10 @@ public class GroupingLookupHelper
 			{
 				for ( int t = 0; t < triggerExprs.length; t++ )
 				{
-					addDataExp( triggerExprs[t], strOrthoAgg );
+					if ( addDataExp( triggerExprs[t], strOrthoAgg ) )
+					{
+						addDataExpForAggregate( triggerExprs[t], strOrthoAgg );
+					}
 				}
 			}
 		}
@@ -425,7 +468,10 @@ public class GroupingLookupHelper
 			String sortExpr = getSortKey( baseSD );
 			if ( sortExpr != null )
 			{
-				addDataExp( sortExpr, "" ); //$NON-NLS-1$
+				if ( addDataExp( sortExpr, "" ) ) //$NON-NLS-1$
+				{
+					addDataExpForAggregate( sortExpr, "" );
+				}
 				fBaseSortExprIndex = findIndexOfBaseSeries( sortExpr );
 			}
 		}

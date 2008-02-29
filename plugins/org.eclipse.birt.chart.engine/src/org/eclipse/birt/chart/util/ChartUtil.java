@@ -41,7 +41,7 @@ import org.eclipse.birt.chart.model.component.Axis;
 import org.eclipse.birt.chart.model.component.Label;
 import org.eclipse.birt.chart.model.data.SeriesDefinition;
 import org.eclipse.birt.chart.model.data.SeriesGrouping;
-import org.eclipse.birt.chart.model.impl.ChartWithoutAxesImpl;
+import org.eclipse.birt.core.data.ExpressionUtil;
 import org.eclipse.emf.common.util.EList;
 
 import com.ibm.icu.util.Calendar;
@@ -727,6 +727,161 @@ public class ChartUtil
 	}
 	
 
+	/**
+	 * Create row full expression of value series.
+	 * 
+	 * @param expr
+	 * @param orthSD
+	 * @param categorySD
+	 * @return
+	 * @throws ChartException
+	 * @since 2.3
+	 */
+	public static String createValueSeriesRowFullExpression( String expr,
+			SeriesDefinition orthSD, SeriesDefinition categorySD )
+			throws ChartException
+	{
+		if ( isCubeRowExpression( expr, true ) )
+		{
+			return expr;
+		}
+
+		return getValueSeriesRowFullExpression( expr,
+				orthSD,
+				categorySD );
+	}
+	
+	/**
+	 * Checks if the expression references a cube binding name
+	 * 
+	 * @param expr
+	 *            expression
+	 * @param hasOperation
+	 *            indicates if operation can be allowed in expression
+	 * @since 2.3
+	 */
+	private static boolean isCubeRowExpression( String expr, boolean hasOperation )
+	{
+		if ( expr == null )
+		{
+			return false;
+		}
+		String regExp = hasOperation ? ".*\\Qdata[\"\\E.*\\Q\"]\\E.*" //$NON-NLS-1$
+				: "\\Qdata[\"\\E.*\\Q\"]\\E"; //$NON-NLS-1$
+		return expr.matches( regExp );
+	}
+	
+	/**
+	 * Returns full expression of value series.
+	 * 
+	 * @param valueExpr
+	 * @param orthoSD
+	 * @param categorySD
+	 * @return
+	 * @throws ChartException
+	 * @since 2.3
+	 *  
+	 */
+	public static String getValueSeriesFullExpression( String valueExpr, SeriesDefinition orthoSD, SeriesDefinition categorySD ) throws ChartException
+	{
+		String returnExpr = null;
+		String fullAggExpr = getFullAggregateExpression( orthoSD, categorySD );
+		if ( fullAggExpr == null )
+		{
+			returnExpr = valueExpr;
+		}
+		else
+		{
+			returnExpr = valueExpr + "_" + fullAggExpr; //$NON-NLS-1$
+		}
+		return returnExpr.replaceAll( "\"", "" ); //$NON-NLS-1$ //$NON-NLS-2$
+	}
+	
+	/**
+	 * Returns row full expression of value series.
+	 *  
+	 * @param valueExpr
+	 * @param orthoSD
+	 * @param categorySD
+	 * @return
+	 * @throws ChartException
+	 * @since 2.3
+	 * 
+	 */
+	public static String getValueSeriesRowFullExpression( String valueExpr, SeriesDefinition orthoSD, SeriesDefinition categorySD ) throws ChartException
+	{
+		String fullAggExpr = getFullAggregateExpression( orthoSD, categorySD );
+		if ( fullAggExpr == null )
+		{
+			return valueExpr;
+		}
+		else
+		{
+			return ExpressionUtil.createRowExpression( ( valueExpr + "_" + fullAggExpr ).replaceAll( "\"", //$NON-NLS-1$ //$NON-NLS-2$
+					"" ) ); //$NON-NLS-1$
+		}
+	}
+	
+	/**
+	 * Return full aggregate expression which includes aggregate func and aggregate parameters.
+	 * 
+	 * @param orthoSD
+	 * @param categorySD
+	 * @return
+	 * @throws ChartException
+	 * @since 2.3
+	 */
+	public static String getFullAggregateExpression( SeriesDefinition orthoSD, SeriesDefinition categorySD ) throws ChartException
+	{
+		String expr = getAggregateFuncExpr( orthoSD, categorySD );
+		if ( expr == null )
+		{
+			return null;
+		}
+
+		IAggregateFunction aFunc = PluginSettings.instance( )
+				.getAggregateFunction( expr );
+		Object[] parameters = ChartUtil.getAggFunParameters( orthoSD,
+				categorySD );
+		for ( int i = 0; i < parameters.length &&
+				i < aFunc.getParametersCount( ); i++ )
+		{
+			String param = ( parameters[i] ) == null ? "" : (String) parameters[i]; //$NON-NLS-1$
+			expr = expr + "_" + param; //$NON-NLS-1$
+		}
+		return expr;
+	}
+	
+	/**
+	 * Returns value of aggregate function parameters.
+	 * 
+	 * @param orthSD
+	 * @param baseSD
+	 * @return
+	 * @since 2.3
+	 */
+	public static Object[] getAggFunParameters( SeriesDefinition orthSD,
+			SeriesDefinition baseSD )
+	{
+		if ( baseSD.getGrouping( ) != null &&
+				baseSD.getGrouping( ).isSetEnabled( ) &&
+				baseSD.getGrouping( ).isEnabled( ) )
+		{
+			SeriesGrouping grouping = orthSD.getGrouping( );
+			if ( grouping.isSetEnabled( ) && grouping.isEnabled( ) )
+			{
+				// Set own group
+				return grouping.getAggregateParameters( ).toArray( );
+			}
+
+			return baseSD.getGrouping( ).getAggregateParameters( ).toArray( );
+		}
+		else
+		{
+			return orthSD.getGrouping( ).getAggregateParameters( ).toArray( );
+		}
+	}
+	
 	/**
 	 * Gets the aggregation function expression
 	 * 
