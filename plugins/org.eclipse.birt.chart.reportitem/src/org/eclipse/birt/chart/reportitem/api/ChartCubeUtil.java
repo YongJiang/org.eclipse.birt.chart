@@ -30,6 +30,7 @@ import org.eclipse.birt.chart.reportitem.ChartReportItemUtil;
 import org.eclipse.birt.chart.reportitem.i18n.Messages;
 import org.eclipse.birt.core.data.ExpressionUtil;
 import org.eclipse.birt.core.exception.BirtException;
+import org.eclipse.birt.data.aggregation.api.IBuildInAggregation;
 import org.eclipse.birt.data.engine.api.aggregation.AggregationManager;
 import org.eclipse.birt.data.engine.api.aggregation.IAggrFunction;
 import org.eclipse.birt.data.engine.api.aggregation.IParameterDefn;
@@ -225,13 +226,6 @@ public class ChartCubeUtil extends ChartItemUtil
 		return levels;
 	}
 
-	/**
-	 * Returns dimension binding name list
-	 * 
-	 * @param columnBindings
-	 *            all bindings
-	 * @return binding name list
-	 */
 	public static List<String> getAllLevelsBindingName(
 			Iterator<ComputedColumnHandle> columnBindings )
 	{
@@ -250,14 +244,6 @@ public class ChartCubeUtil extends ChartItemUtil
 		return bindings;
 	}
 
-	/**
-	 * Returns any binding names excluding dimension binding. That means the
-	 * list includes measure bindings or computed columns
-	 * 
-	 * @param columnBindings
-	 *            all bindings
-	 * @return binding name list
-	 */
 	public static List<String> getAllMeasuresBindingName(
 			Iterator<ComputedColumnHandle> columnBindings )
 	{
@@ -268,8 +254,14 @@ public class ChartCubeUtil extends ChartItemUtil
 		{
 			ComputedColumnHandle cc = columnBindings.next( );
 			ChartReportItemUtil.loadExpression( exprCodec, cc );
-			if ( !exprCodec.isDimensionExpresion( ) )
+			if ( exprCodec.isMeasureExpresion( ) )
 			{
+				bindings.add( cc.getName( ) );
+			}
+			else if ( IBuildInAggregation.TOTAL_COUNT_FUNC.equals( cc.getAggregateFunction( ) )
+					|| IBuildInAggregation.TOTAL_COUNTDISTINCT_FUNC.equals( cc.getAggregateFunction( ) ) )
+			{
+				// Add count aggregation to measure list
 				bindings.add( cc.getName( ) );
 			}
 		}
