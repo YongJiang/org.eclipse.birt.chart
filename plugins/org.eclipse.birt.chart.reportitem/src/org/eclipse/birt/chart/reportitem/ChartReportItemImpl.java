@@ -857,11 +857,6 @@ public final class ChartReportItemImpl extends ReportItem implements
 				list.add( extendedException );
 			}
 		}
-		else
-		{
-			list.add( new SemanticError( handle.getElement( ),
-					SemanticError.DESIGN_EXCEPTION_UNSUPPORTED_ELEMENT ) );
-		}
 		return list;
 	}
 

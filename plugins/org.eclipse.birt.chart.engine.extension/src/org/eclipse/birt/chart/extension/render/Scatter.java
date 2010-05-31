@@ -69,7 +69,6 @@ public class Scatter extends Line
 	 *      org.eclipse.birt.chart.model.layout.Plot,
 	 *      org.eclipse.birt.chart.computation.axes.SeriesRenderingHints)
 	 */
-	@Override
 	public void renderSeries( IPrimitiveRenderer ipr, Plot p,
 			ISeriesRenderingHints isrh ) throws ChartException
 	{
@@ -380,17 +379,17 @@ public class Scatter extends Line
 					{
 						lre = ( (EventObjectCache) ipr ).getEventObject( StructureSource.createSeries( ss ),
 								LineRenderEvent.class );
-						if ( ss.isPaletteLineColor( ) )
+						if ( ss.isPaletteLineColor( )
+								&& fPaletteEntry instanceof ColorDefinition )
 						{
 							LineAttributes newLia = goFactory.copyOf( lia );
-							newLia.setColor( FillUtil.getColor( fPaletteEntry ) );
+							newLia.setColor( (ColorDefinition) fPaletteEntry );
 							lre.setLineAttributes( newLia );
 						}
 						else
 						{
 							lre.setLineAttributes( lia );
 						}
-						
 						lre.setStart( loa[0] );
 						lre.setEnd( loa[1] );
 						ipr.drawLine( lre );

@@ -99,10 +99,6 @@ public final class ChartReportItemQueryImpl extends ReportItemQueryBase
 		logger.log( ILogger.INFORMATION,
 				Messages.getString( "ChartReportItemQueryImpl.log.getReportQueries.start" ) ); //$NON-NLS-1$
 
-		if ( cm == null )
-		{
-			return null;
-		}
 		IDataQueryDefinition idqd = createQuery( eih, parent );
 		logger.log( ILogger.INFORMATION,
 				Messages.getString( "ChartReportItemQueryImpl.log.getReportQueries.end" ) ); //$NON-NLS-1$
