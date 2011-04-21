@@ -96,7 +96,7 @@ public class NumberUtil
 		return value instanceof BigDecimal
 				|| value instanceof java.math.BigDecimal;
 	}
-    
+	
 	/**
 	 * Checks if specified object is instance of ibm's BigDecimal.
 	 * 
