@@ -119,7 +119,7 @@ public class HorizontalAxesAdjuster implements IAxisAdjuster
 		{
 			scY.setEndPoints( endPoints[0], endPoints[1] );
 			HorizontalAxisAdjuster haa = values.get( i );
-			haa.adjust( );
+ 			haa.adjust( );
 
 			double locationDelta = AxesAdjuster.getLocationDelta( scY,
 					haa.getHorizontalAxis( ).getIntersectionValue( ) );

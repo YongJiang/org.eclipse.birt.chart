@@ -2600,7 +2600,7 @@ public final class PlotWith2DAxes extends PlotWithAxes
 			Object max = dsi.next( );
 			dsi = new DataSetIterator( adjustMinMax( min, max ), iAxisType );
 		}
-
+		
 		return dsi;
 	}
 
